@@ -1,0 +1,19 @@
+# Core Web & API Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+python-multipart>=0.0.9
+websockets>=12.0
+
+# Scientific & Computer Vision
+numpy>=1.24.0,<2.0.0
+scipy>=1.12.0
+matplotlib>=3.8.0
+pillow>=10.0.0
+opencv-python>=4.9.0.80
+
+# Machine Learning & Crowd Detection Engines
+ultralytics>=8.1.0
+sahi>=0.12.6
+lwcc>=0.0.7
+gdown>=5.0.0
+pydantic>=2.5.0

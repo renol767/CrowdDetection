@@ -1,0 +1,19 @@
+{
+  "settings_version": "0.0.8",
+  "datasets_dir": "/Users/renoldnatasasmita/Dev/datasets",
+  "weights_dir": "/Users/renoldnatasasmita/Dev/CrowdDetection/weights",
+  "runs_dir": "/Users/renoldnatasasmita/Dev/CrowdDetection/runs",
+  "uuid": "77031472f8af3852b843d632c3c5f8a60de0fb9221d2d4a9d281a3ac7f99ac4a",
+  "sync": true,
+  "api_key": "",
+  "openai_api_key": "",
+  "clearml": true,
+  "comet": true,
+  "dvc": true,
+  "mlflow": true,
+  "raytune": true,
+  "tensorboard": false,
+  "wandb": false,
+  "vscode_msg": true,
+  "openvino_msg": true
+}

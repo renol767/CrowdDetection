@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CROWDVISION - Drone Command Center | Real-Time Crowd Monitoring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css?v=2.5">
+</head>
+<body>
+  <div class="command-container">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <div class="radar-pulse-icon">
+            <i data-lucide="crosshair"></i>
+          </div>
+          <div>
+            <div class="brand-title">CROWDVISION <span class="brand-badge">PRO</span></div>
+            <div class="brand-sub">DRONE COMMAND CENTER • REAL-TIME CROWD MONITORING & ANALYTICS</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="status-pill status-online">
+          <span class="pulsing-dot"></span>
+          <span>SYSTEM ONLINE</span>
+        </div>
+        <div class="drone-model-pill">
+          <i data-lucide="navigation"></i>
+          <span>DRONE-01 : DJI Matrice 350 RTK</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="metric-badge">
+          <i data-lucide="wifi" class="text-green"></i>
+          <span>4G/5G Strong</span>
+        </div>
+        <div class="metric-badge clock-badge">
+          <i data-lucide="clock"></i>
+          <span id="live-clock">15:42:18 WIB</span>
+        </div>
+        <div class="user-profile">
+          <div class="avatar"><i data-lucide="shield"></i></div>
+          <div class="user-meta">
+            <span class="user-name">Operator #04</span>
+            <span class="user-role">Command Center</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="main-body">
+      <!-- LEFT SIDEBAR -->
+      <aside class="sidebar-nav">
+        <nav class="nav-menu">
+          <button class="nav-item active" title="Live View">
+            <i data-lucide="video"></i>
+            <span>Live View</span>
+          </button>
+          <button class="nav-item" title="Buat & Kelola Zona" onclick="openZoneManagerModal()">
+            <i data-lucide="layers"></i>
+            <span>Zones (<span id="sidebar-zone-count">3</span>)</span>
+          </button>
+          <button class="nav-item" title="Buat Zona Baru" onclick="toggleDrawZoneMode()">
+            <i data-lucide="edit-3"></i>
+            <span>+ Draw Zone</span>
+          </button>
+          <button class="nav-item" title="Video Upload / Source" onclick="openUploadModal()">
+            <i data-lucide="film"></i>
+            <span>Video Source</span>
+          </button>
+          <button class="nav-item" title="Events & Alerts" onclick="openToast('Menampilkan seluruh log peringatan')">
+            <i data-lucide="alert-triangle"></i>
+            <span>Events & Alerts</span>
+          </button>
+          <button class="nav-item" title="Reports" onclick="exportData()">
+            <i data-lucide="file-text"></i>
+            <span>Reports</span>
+          </button>
+          <button class="nav-item" title="Drone Status" onclick="openToast('Status Drone: Optimal (Battery 68%)')">
+            <i data-lucide="cpu"></i>
+            <span>Drone Status</span>
+          </button>
+          <button class="nav-item mt-auto" title="Settings" onclick="openSettingsModal()">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- CENTER CONTENT -->
+      <main class="center-content">
+        <!-- VIDEO FEED CONTAINER -->
+        <section class="video-feed-panel">
+          <!-- Feed Header -->
+          <div class="feed-header">
+            <div class="feed-title-wrap">
+              <span class="recording-dot"></span>
+              <span class="feed-title" id="feed-title">LIVE VIDEO - DEPAN GEDUNG DPR</span>
+              <span class="live-tag">● LIVE</span>
+            </div>
+            <div class="feed-meta-chips">
+              <span class="feed-chip" id="chip-res">1080p</span>
+              <span class="feed-chip" id="chip-fps"><i data-lucide="activity"></i> <span id="fps-val">30</span> FPS</span>
+              <span class="feed-chip" id="chip-latency"><i data-lucide="zap"></i> <span id="latency-val">32ms</span></span>
+              <span class="feed-chip"><i data-lucide="cpu"></i> <span id="model-val">Head Detection (aminesam.pt)</span></span>
+              <span class="feed-chip" id="chip-hw" title="Detected Hardware Accelerator"><i data-lucide="hard-drive"></i> <span id="device-val" class="text-green">AUTO GPU</span></span>
+              <span class="feed-chip feed-chip-crowdeye" id="chip-crowdeye"><i data-lucide="eye"></i> ROUTE: <span id="crowdeye-method-val" class="text-cyan">DETECTION</span></span>
+              
+              <!-- Action Buttons -->
+              <button class="feed-action-btn" id="btn-toggle-heatmap" title="Toggle Heatmap Kepadatan Crowd" onclick="toggleHeatmap()">
+                <i data-lucide="flame"></i> Heatmap: OFF
+              </button>
+              <button class="feed-action-btn action-draw-btn" id="btn-draw-zone" onclick="toggleDrawZoneMode()" title="Gambar Zona Baru">
+                <i data-lucide="edit-3"></i> + Buat Zona
+              </button>
+              <button class="feed-action-btn" onclick="openZoneManagerModal()" title="Kelola & Hapus Zona">
+                <i data-lucide="layers"></i> Kelola Zona (<span id="zones-count-badge">3</span>)
+              </button>
+
+              <button class="feed-action-btn" id="btn-toggle-boxes" title="Toggle Bounding Boxes" onclick="toggleBboxes()">
+                <i data-lucide="box"></i> Box: ON
+              </button>
+              <button class="feed-action-btn" id="btn-toggle-points" title="Toggle P2PNet Head Dots" onclick="togglePoints()">
+                <i data-lucide="crosshair"></i> Dots: ON
+              </button>
+              <button class="feed-action-btn" id="btn-toggle-zones" title="Toggle Zones" onclick="toggleZones()">
+                <i data-lucide="grid"></i> Zones: ON
+              </button>
+              <button class="feed-action-btn" onclick="openUploadModal()" title="Ganti Video">
+                <i data-lucide="upload-cloud"></i> Upload Video
+              </button>
+              <button class="feed-action-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                <i data-lucide="maximize"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Viewport / HUD Display -->
+          <div class="video-viewport" id="video-viewport">
+            <img id="live-stream-img" src="" alt="Live Crowd Feed" style="display:none;" onload="handleStreamLoaded()" onerror="handleStreamError()">
+            
+            <!-- Interactive Zone Drawing Canvas Overlay -->
+            <canvas id="zone-drawing-canvas" class="zone-drawing-canvas"></canvas>
+
+            <!-- Floating Drawing Instruction HUD Bar -->
+            <div class="drawing-hud-bar" id="drawing-hud-bar" style="display: none;">
+              <div class="hud-bar-info">
+                <i data-lucide="crosshair" class="text-cyan"></i>
+                <span>MODE GAMBAR ZONA: Klik pada video untuk menambah titik (min. 3 titik).</span>
+                <span class="pts-counter-pill" id="draw-pts-counter">0 Titik</span>
+              </div>
+              <div class="hud-bar-actions">
+                <button class="btn-hud-finish" onclick="finishDrawingZone()">
+                  <i data-lucide="check"></i> Selesai & Simpan
+                </button>
+                <button class="btn-hud-cancel" onclick="cancelDrawingZone()">
+                  <i data-lucide="x"></i> Batal
+                </button>
+              </div>
+            </div>
+
+            <div class="video-loading-overlay" id="stream-loading">
+              <div class="loader-spinner"></div>
+              <div class="loader-text">CONNECTING TO VIDEO STREAM & YOLO26N DETECTOR...</div>
+              <div class="loader-sub">Siapkan video atau klik 'Upload Video' untuk memulai deteksi</div>
+              <button class="btn-primary-sm mt-3" onclick="loadSampleVideo()">
+                <i data-lucide="play"></i> Muat Demo Crowd Video
+              </button>
+            </div>
+
+            <!-- On-Screen HUD Overlay -->
+            <div class="hud-overlay" id="hud-overlay">
+              <div class="hud-top-info">
+                <div class="hud-target-loc">Gedung DPR/MPR RI<br><span class="text-dim">Jakarta Pusat</span></div>
+                <div class="hud-timestamp" id="hud-timestamp">16 Jun 2025 15:42:18 WIB</div>
+              </div>
+
+              <!-- Bottom Left Compass / Drone Telemetry HUD -->
+              <div class="hud-telemetry-corner">
+                <div class="compass-dial">
+                  <div class="compass-needle"></div>
+                  <span class="compass-n">N</span>
+                </div>
+                <div class="hud-drone-coords">
+                  <div>Lat: <span id="hud-lat">-6.1764</span>, Long: <span id="hud-lng">106.8208</span></div>
+                  <div>Alt: <span id="hud-alt">120 m</span> | Spd: <span id="hud-spd">12 m/s</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOTTOM PANELS GRID -->
+        <section class="bottom-analytics-grid">
+          <!-- CARD 1: CROWD STATISTICS -->
+          <div class="panel-card crowd-stats-card">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="users"></i> CROWD STATISTICS</div>
+              <div class="zone-filter-hint"><i data-lucide="filter"></i> DALAM ZONA</div>
+            </div>
+            
+            <div class="total-people-box">
+              <div>
+                <div class="stat-label">TOTAL PEOPLE (DALAM ZONA)</div>
+                <div class="stat-value" id="stat-total-people">0</div>
+                <div class="stat-sub-info" id="stat-sub-info">Menghitung orang di dalam zona aktif</div>
+              </div>
+              <div class="trend-badge trend-up">
+                <i data-lucide="trending-up"></i>
+                <span id="stat-trend-pct">+18%</span>
+                <div class="trend-sub">Live Zone Count</div>
+              </div>
+            </div>
+
+            <!-- DYNAMIC Zone Breakdown Cards -->
+            <div class="zones-breakdown-row" id="zones-breakdown-container">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </div>
+
+          <!-- CARD 2: CROWD TREND (CHART) -->
+          <div class="panel-card chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="line-chart"></i> CROWD TREND (TIMELINE)</div>
+              <div class="chart-legend-custom" id="chart-legend-container">
+                <span class="legend-item"><span class="legend-dot dot-white"></span> Total</span>
+              </div>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="crowdTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- CARD 3: EVENTS & ALERTS -->
+          <div class="panel-card alerts-card">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="bell"></i> EVENTS & ALERTS</div>
+              <button class="link-btn" onclick="clearAlerts()">Clear</button>
+            </div>
+            <div class="alerts-stream-list" id="alerts-list">
+              <div class="alert-item alert-success">
+                <div class="alert-icon"><i data-lucide="check-circle-2"></i></div>
+                <div class="alert-body">
+                  <div class="alert-title">Sistem Deteksi YOLO Siap</div>
+                  <div class="alert-meta">Model: yolo26n.pt • Online</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 4: QUICK ACTIONS -->
+          <div class="panel-card actions-card">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="command"></i> QUICK ACTIONS</div>
+            </div>
+            <div class="action-buttons-grid">
+              <button class="action-btn action-draw-btn" onclick="toggleDrawZoneMode()">
+                <i data-lucide="edit-3"></i>
+                <span>+ Buat Zona</span>
+              </button>
+              <button class="action-btn" onclick="openZoneManagerModal()">
+                <i data-lucide="layers"></i>
+                <span>Kelola Zona</span>
+              </button>
+              <button class="action-btn" onclick="openUploadModal()">
+                <i data-lucide="upload-cloud"></i>
+                <span>Upload Video</span>
+              </button>
+              <button class="action-btn" onclick="takeSnapshot()">
+                <i data-lucide="camera"></i>
+                <span>Take Snapshot</span>
+              </button>
+              <button class="action-btn action-emergency" onclick="toggleEmergency()">
+                <i data-lucide="alert-octagon"></i>
+                <span>Emergency Mode</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- RIGHT SIDEBAR: MAP & TELEMETRY -->
+      <aside class="right-panel">
+        <!-- Panel MAP & DRONE POSITION -->
+        <div class="side-card map-card">
+          <div class="side-card-header">
+            <div class="side-title"><i data-lucide="crosshair"></i> MAP & DRONE POSITION</div>
+            <div class="map-view-toggle">
+              <button class="map-toggle-btn active">Satellite</button>
+              <button class="map-toggle-btn" onclick="openToast('Peta GIS: Terpasang di mode Satelit')">Map</button>
+            </div>
+          </div>
+          
+          <div class="tactical-map-viewport">
+            <div class="satellite-bg"></div>
+            <!-- Tactical Drone & Zone Overlays on Map -->
+            <div class="map-poly zone-poly-a" title="Zona A"><span>A</span></div>
+            <div class="map-poly zone-poly-b" title="Zona B"><span>B</span></div>
+            <div class="map-poly zone-poly-c" title="Zona C"><span>C</span></div>
+            <div class="map-drone-marker" style="top: 28%; left: 62%;" title="DJI Matrice 350 RTK">
+              <div class="drone-radar-sweep"></div>
+              <i data-lucide="navigation-2" class="drone-icon-svg"></i>
+            </div>
+            <div class="map-label-dpr">DPR / MPR RI</div>
+            <div class="map-scale">100 m</div>
+          </div>
+
+          <div class="map-legend">
+            <span><span class="leg-color leg-red"></span> Zona A</span>
+            <span><span class="leg-color leg-blue"></span> Zona B</span>
+            <span><span class="leg-color leg-yellow"></span> Zona C</span>
+            <span><span class="leg-color leg-cyan"></span> Drone</span>
+          </div>
+        </div>
+
+        <!-- Panel DRONE TELEMETRY -->
+        <div class="side-card telemetry-card">
+          <div class="side-card-header">
+            <div class="side-title"><i data-lucide="gauge"></i> DRONE TELEMETRY</div>
+          </div>
+          <div class="telemetry-grid">
+            <div class="telem-box">
+              <div class="telem-icon"><i data-lucide="arrow-up-down"></i></div>
+              <div class="telem-data">
+                <span class="t-label">Altitude</span>
+                <span class="t-val" id="t-alt">120 m</span>
+              </div>
+            </div>
+            <div class="telem-box">
+              <div class="telem-icon"><i data-lucide="gauge"></i></div>
+              <div class="telem-data">
+                <span class="t-label">Speed</span>
+                <span class="t-val" id="t-speed">12 m/s</span>
+              </div>
+            </div>
+            <div class="telem-box">
+              <div class="telem-icon"><i data-lucide="locate-fixed"></i></div>
+              <div class="telem-data">
+                <span class="t-label">Distance (Home)</span>
+                <span class="t-val" id="t-dist">1,250 m</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="telem-sub-details">
+            <div class="telem-row">
+              <span class="text-dim"><i data-lucide="map-pin"></i> GPS:</span>
+              <span class="font-mono text-cyan" id="t-gps">-6.1764, 106.8208</span>
+            </div>
+            <div class="telem-row mt-2">
+              <div class="battery-status-wrap">
+                <span class="text-dim"><i data-lucide="battery-charging"></i> Battery</span>
+                <span class="font-mono text-green font-bold" id="t-batt">68%</span>
+                <div class="batt-bar"><div class="batt-fill" style="width: 68%;"></div></div>
+              </div>
+              <div class="flight-time-wrap">
+                <span class="text-dim"><i data-lucide="timer"></i> Flight Time</span>
+                <span class="font-mono text-white" id="t-flight">00:28:37</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel CROWD EYE DUAL-ENGINE -->
+        <div class="side-card crowdeye-card">
+          <div class="side-card-header">
+            <div class="side-title"><i data-lucide="eye"></i> CROWD EYE DUAL-ENGINE</div>
+            <span class="badge-route badge-detection" id="ce-badge-route">DETECTION</span>
+          </div>
+
+          <div class="crowdeye-body">
+            <!-- Mode Switcher -->
+            <div class="ce-mode-selector">
+              <button class="ce-mode-btn active" id="ce-mode-auto" onclick="setCrowdMode('auto')">AUTO</button>
+              <button class="ce-mode-btn" id="ce-mode-detection" onclick="setCrowdMode('detection')">YOLO</button>
+              <button class="ce-mode-btn" id="ce-mode-p2pnet" onclick="setCrowdMode('p2pnet')">P2PNET DOTS</button>
+              <button class="ce-mode-btn" id="ce-mode-density" onclick="setCrowdMode('density')">DENSITY</button>
+            </div>
+
+            <!-- Comparison Metrics -->
+            <div class="ce-metrics-grid ce-metrics-3col">
+              <div class="ce-stat-box">
+                <span class="ce-stat-label">YOLO (Box)</span>
+                <span class="ce-stat-num text-cyan" id="ce-det-count">0</span>
+              </div>
+              <div class="ce-stat-box">
+                <span class="ce-stat-label">P2PNet (Dots)</span>
+                <span class="ce-stat-num text-green" id="ce-p2p-count">0</span>
+              </div>
+              <div class="ce-stat-box">
+                <span class="ce-stat-label">DM-Count (Est.)</span>
+                <span class="ce-stat-num text-orange" id="ce-dens-count">0</span>
+              </div>
+            </div>
+
+            <!-- Ratio & Threshold Progress -->
+            <div class="ce-telemetry-row">
+              <div class="ce-row-labels">
+                <span>Routing Ratio (Dens/Det)</span>
+                <span class="font-mono text-cyan font-bold" id="ce-ratio-val">1.00 <span class="text-dim">/ 5.0</span></span>
+              </div>
+              <div class="ce-meter-bar">
+                <div class="ce-meter-fill" id="ce-ratio-fill" style="width: 20%;"></div>
+              </div>
+            </div>
+
+            <!-- Spatial Packedness Metric -->
+            <div class="ce-telemetry-row">
+              <div class="ce-row-labels">
+                <span>Spatial Packedness (cKDTree)</span>
+                <span class="font-mono text-white font-bold" id="ce-packed-val">0.000</span>
+              </div>
+              <div class="ce-meter-bar">
+                <div class="ce-meter-fill fill-packed" id="ce-packed-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="ce-footer-actions">
+              <button class="btn-primary-sm w-100" onclick="triggerCrowdEyeScan()" style="width: 100%; justify-content: center;">
+                <i data-lucide="scan"></i> Scan Density Now (<span id="ce-scan-ms">0</span>ms)
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- FOOTER BAR -->
+    <footer class="bottom-footer">
+      <span>CROWDVISION | Safer Cities, Stronger Democracy</span>
+      <span>AI CROWD DETECTION ENGINE • FASTAPI + YOLO26N • V1.0.0</span>
+    </footer>
+  </div>
+
+  <!-- ZONE SAVE MODAL (After Drawing Polygon) -->
+  <div class="modal-backdrop" id="save-zone-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="plus-circle"></i> SIMPAN ZONA BARU</div>
+        <button class="close-btn" onclick="closeSaveZoneModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Beri nama zona deteksi kerumunan dan pilih warna penanda taktis.
+        </p>
+        <div class="setting-group">
+          <label class="setting-label">Nama Zona:</label>
+          <input type="text" id="new-zone-name" placeholder="Misal: Zona Gerbang Utama / Area VIP" class="tactical-input">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Warna Zona:</label>
+          <div class="color-picker-row">
+            <label class="color-option"><input type="radio" name="zone-color" value="#ff334b" checked><span class="color-box" style="background:#ff334b;"></span> Merah</label>
+            <label class="color-option"><input type="radio" name="zone-color" value="#00b4d8"><span class="color-box" style="background:#00b4d8;"></span> Biru</label>
+            <label class="color-option"><input type="radio" name="zone-color" value="#e0a91e"><span class="color-box" style="background:#e0a91e;"></span> Kuning</label>
+            <label class="color-option"><input type="radio" name="zone-color" value="#a855f7"><span class="color-box" style="background:#a855f7;"></span> Ungu</label>
+            <label class="color-option"><input type="radio" name="zone-color" value="#00ff88"><span class="color-box" style="background:#00ff88;"></span> Hijau</label>
+            <label class="color-option"><input type="radio" name="zone-color" value="#00e5ff"><span class="color-box" style="background:#00e5ff;"></span> Cyan</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSaveZoneModal()">Batal</button>
+        <button class="btn-primary" onclick="submitNewZone()">
+          <i data-lucide="check"></i> Simpan Zona
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE MANAGER MODAL -->
+  <div class="modal-backdrop" id="zone-manager-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="layers"></i> KELOLA & HAPUS ZONA DETEKSI</div>
+        <button class="close-btn" onclick="closeZoneManagerModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Daftar zona deteksi aktif. Hanya orang di dalam zona-zona ini yang akan dihitung (*crowd count*).
+        </p>
+
+        <div class="zones-table-list" id="zones-table-list">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="zone-bulk-actions">
+          <button class="btn-secondary-sm" onclick="resetDefaultZones()">
+            <i data-lucide="rotate-ccw"></i> Reset Default (Zona A, B, C)
+          </button>
+          <button class="btn-danger-sm" onclick="clearAllZones()">
+            <i data-lucide="trash-2"></i> Hapus Semua Zona
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-sm" onclick="closeZoneManagerModal(); toggleDrawZoneMode();">
+          <i data-lucide="edit-3"></i> + Buat Zona Baru
+        </button>
+        <button class="btn-secondary" onclick="closeZoneManagerModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD VIDEO MODAL -->
+  <div class="modal-backdrop" id="upload-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="upload-cloud"></i> UPLOAD VIDEO FOR CROWD DETECTION</div>
+        <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Unggah rekaman video (MP4, MOV, AVI) dari drone atau CCTV. Backend FastAPI akan menjalankan model YOLO26N untuk deteksi orang dan penghitungan kerumunan real-time.
+        </p>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-msvideo,video/mkv" style="display:none" onchange="handleFileSelected(event)">
+          <i data-lucide="upload" class="dropzone-icon"></i>
+          <div class="dropzone-text" id="dropzone-text">Klik atau seret file video ke sini</div>
+          <div class="dropzone-sub">Mendukung MP4, MOV, AVI hingga 500MB</div>
+        </div>
+
+        <div class="upload-progress-wrap" id="upload-progress" style="display:none;">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="upload-bar" style="width: 0%;"></div></div>
+          <div class="progress-label" id="upload-label">Mengunggah file... 0%</div>
+        </div>
+
+        <div class="quick-samples-box">
+          <div class="samples-title">Atau gunakan video yang telah tersedia:</div>
+          <div class="samples-list" id="sample-videos-list">
+            <button class="sample-chip" onclick="loadSampleVideo()">
+              <i data-lucide="play-circle"></i> Demo Crowd Simulation
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeUploadModal()">Tutup</button>
+        <button class="btn-primary" id="btn-submit-upload" onclick="startUpload()" disabled>
+          <i data-lucide="play"></i> Unggah & Mulai Deteksi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-backdrop" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="sliders"></i> CROWD DETECTION CONFIGURATION</div>
+        <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label class="setting-label">Detection Engine & Model:</label>
+          <select id="setting-model-select" class="tactical-input" style="background:#0b111a; color:#fff; border:1px solid #1e293b; padding:8px 12px; border-radius:4px; width:100%;">
+            <option value="aminesam.pt" selected>aminesam.pt (YOLO Head Detection - Fast)</option>
+            <option value="yakhyo.pt">yakhyo.pt (YOLO CrowdHuman Body - 2500 MaxDet)</option>
+            <option value="crowd-eye/yolo/p2pcrowdcounting.pth">p2pcrowdcounting.pth (P2PNet Head Dots Localization)</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Detection Confidence Threshold: <span id="conf-val" class="text-cyan">0.10</span></label>
+          <input type="range" id="conf-slider" min="0.05" max="0.90" step="0.05" value="0.10" class="tactical-slider" oninput="updateConf(this.value)">
+          <div class="slider-labels">
+            <span>0.1 (Sensitif / Massa Jauh)</span>
+            <span>0.5 (Seimbang)</span>
+            <span>0.9 (Sangat Ketat)</span>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Alert Kepadatan Tinggi (Orang per Zona):</label>
+          <input type="number" id="setting-threshold" value="100" class="tactical-input">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="saveSettings()">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="tactical-toast">Notification message</div>
+
+  <script src="app.js?v=3.0"></script>
+</body>
+</html>

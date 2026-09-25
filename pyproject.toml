@@ -1,0 +1,18 @@
+[project]
+name = "crowd-detection"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "lwcc>=0.0.7",
+    "numpy>=2.5.3",
+    "opencv-python-headless>=4.9.0",
+    "python-multipart>=0.0.9",
+    "sahi>=0.12.6",
+    "scipy>=1.18.1",
+    "ultralytics>=8.1.0",
+    "uvicorn[standard]>=0.28.0",
+    "websockets>=12.0",
+]
