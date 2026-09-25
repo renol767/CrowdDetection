@@ -299,27 +299,30 @@ class CrowdDetector:
 
     def set_engine(self, engine: str):
         """Switches detection engine between 'yolo' and 'p2pnet'."""
-        if engine in ("yolo", "p2pnet"):
-            self.engine = engine
-            if engine == "p2pnet":
-                load_p2pnet(self.p2p_weights, device=self.device)
-            print(f"[CrowdDetector] Detection engine switched to: {self.engine.upper()} on {self.device}")
+        with self._inference_lock:
+            if engine in ("yolo", "p2pnet"):
+                self.engine = engine
+                if engine == "p2pnet":
+                    load_p2pnet(self.p2p_weights, device=self.device)
+                print(f"[CrowdDetector] Detection engine switched to: {self.engine.upper()} on {self.device}")
 
     def set_model(self, model_name: str):
         """Loads a model weight file (.pt for YOLO or .pth for P2PNet)."""
-        self.model_name = model_name
-        if "p2p" in model_name.lower() or model_name.endswith(".pth"):
-            self.engine = "p2pnet"
-            self.p2p_weights = model_name
-            self.is_head_model = True
-            load_p2pnet(self.p2p_weights, device=self.device)
-            print(f"[CrowdDetector] Active model: P2PNet ({model_name}) on {self.device}")
-        else:
-            self.engine = "yolo"
-            print(f"[CrowdDetector] Loading YOLO model: {model_name}...")
-            self.model = YOLO(model_name)
-            self.is_head_model = any("head" in str(name).lower() for name in self.model.names.values())
-            print(f"[CrowdDetector] Loaded YOLO model: {model_name}, is_head_model={self.is_head_model}")
+        with self._inference_lock:
+            self.model_name = model_name
+            if "p2p" in model_name.lower() or model_name.endswith(".pth"):
+                self.engine = "p2pnet"
+                self.p2p_weights = model_name
+                self.is_head_model = True
+                load_p2pnet(self.p2p_weights, device=self.device)
+                print(f"[CrowdDetector] Active model: P2PNet ({model_name}) on {self.device}")
+            else:
+                self.engine = "yolo"
+                print(f"[CrowdDetector] Loading YOLO model: {model_name}...")
+                self.model = YOLO(model_name)
+                self.is_head_model = any("head" in str(name).lower() for name in self.model.names.values())
+                print(f"[CrowdDetector] Loaded YOLO model: {model_name}, is_head_model={self.is_head_model}")
+            sync_device()
 
     def set_points_visible(self, visible: bool):
         self.show_points = visible
@@ -383,9 +386,8 @@ class CrowdDetector:
                     target_max_size=1280,
                     device=self.device
                 )
-                results = None
+                raw_boxes = None
             else:
-                # YOLO bounding box detection
                 pts_list = None
                 results = self.model.predict(
                     source=frame,
@@ -397,6 +399,11 @@ class CrowdDetector:
                     verbose=False,
                     device=self.device
                 )
+                if results and len(results) > 0 and len(results[0].boxes) > 0:
+                    # Immediately copy all tensor data to CPU numpy INSIDE the lock
+                    raw_boxes = results[0].boxes.data.cpu().numpy()
+                else:
+                    raw_boxes = None
             sync_device()
 
         if self.engine == "p2pnet" and pts_list is not None:
@@ -413,35 +420,33 @@ class CrowdDetector:
                     total_in_zones += 1
 
                 points.append((px, py, sc, assigned_zone_id))
-        elif results and len(results) > 0:
-                boxes = results[0].boxes
-                for box in boxes:
-                    xyxy = box.xyxy[0].cpu().numpy().astype(int)
-                    conf = float(box.conf[0].cpu().numpy())
-                    x1, y1, x2, y2 = xyxy
+        elif raw_boxes is not None and len(raw_boxes) > 0:
+            for box in raw_boxes:
+                x1, y1, x2, y2 = int(box[0]), int(box[1]), int(box[2]), int(box[3])
+                conf = float(box[4])
 
-                    # Calculate centroid position (head center vs body feet)
-                    cx = int((x1 + x2) / 2)
-                    if self.is_head_model:
-                        cy = int((y1 + y2) / 2)
-                    else:
-                        cy = int(y2 - (y2 - y1) * 0.15)
+                # Calculate centroid position (head center vs body feet)
+                cx = int((x1 + x2) / 2)
+                if self.is_head_model:
+                    cy = int((y1 + y2) / 2)
+                else:
+                    cy = int(y2 - (y2 - y1) * 0.15)
 
-                    total_detected_all += 1
+                total_detected_all += 1
 
-                    # Determine which zone this person belongs to
-                    assigned_zone_id = None
-                    for z_id, z_data in pixel_zones.items():
-                        if cv2.pointPolygonTest(z_data["pts"], (cx, cy), False) >= 0:
-                            assigned_zone_id = z_id
-                            break
+                # Determine which zone this person belongs to
+                assigned_zone_id = None
+                for z_id, z_data in pixel_zones.items():
+                    if cv2.pointPolygonTest(z_data["pts"], (cx, cy), False) >= 0:
+                        assigned_zone_id = z_id
+                        break
 
-                    if assigned_zone_id is not None:
-                        zone_counts[assigned_zone_id] += 1
-                        total_in_zones += 1
+                if assigned_zone_id is not None:
+                    zone_counts[assigned_zone_id] += 1
+                    total_in_zones += 1
 
-                    detections.append((x1, y1, x2, y2, conf, assigned_zone_id))
-                    points.append((cx, cy, conf, assigned_zone_id))
+                detections.append((x1, y1, x2, y2, conf, assigned_zone_id))
+                points.append((cx, cy, conf, assigned_zone_id))
 
         infer_duration = time.time() - start_t
         fps = round(1.0 / max(0.001, infer_duration), 1)

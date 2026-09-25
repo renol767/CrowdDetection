@@ -78,6 +78,19 @@ function startStream() {
 function handleStreamLoaded() {
   const loader = document.getElementById('stream-loading');
   if (loader) loader.style.display = 'none';
+  const canvasEl = document.getElementById('zone-drawing-canvas');
+  const img = document.getElementById('live-stream-img');
+  const vp = document.getElementById('video-viewport');
+  if (canvasEl && img && vp && img.clientWidth > 0) {
+    const rect = img.getBoundingClientRect();
+    const vpRect = vp.getBoundingClientRect();
+    canvasEl.style.top = `${rect.top - vpRect.top}px`;
+    canvasEl.style.left = `${rect.left - vpRect.left}px`;
+    canvasEl.style.width = `${rect.width}px`;
+    canvasEl.style.height = `${rect.height}px`;
+    canvasEl.width = Math.round(rect.width);
+    canvasEl.height = Math.round(rect.height);
+  }
 }
 
 function handleStreamError() {
@@ -169,7 +182,12 @@ function updateDashboardStats(stats) {
 
   // Active Video Name & Model
   if (stats.video_name && stats.video_name !== "No Video Active") {
-    document.getElementById('feed-title').textContent = `LIVE FEED: ${stats.video_name.toUpperCase()}`;
+    const titleEl = document.getElementById('feed-title');
+    if (titleEl) {
+      const fullTitle = `LIVE FEED: ${stats.video_name.toUpperCase()}`;
+      titleEl.textContent = fullTitle;
+      titleEl.title = `Nama File Lengkap: ${stats.video_name}`;
+    }
   }
 
   if (stats.model_name) {
@@ -302,13 +320,34 @@ function initDrawingCanvas() {
 
   function resizeCanvas() {
     const vp = document.getElementById('video-viewport');
-    if (!vp) return;
-    canvas.width = vp.clientWidth;
-    canvas.height = vp.clientHeight;
+    const img = document.getElementById('live-stream-img');
+    if (!canvas || !vp) return;
+
+    if (img && img.clientWidth > 0 && img.clientHeight > 0) {
+      const rect = img.getBoundingClientRect();
+      const vpRect = vp.getBoundingClientRect();
+      canvas.style.top = `${rect.top - vpRect.top}px`;
+      canvas.style.left = `${rect.left - vpRect.left}px`;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      canvas.width = Math.round(rect.width);
+      canvas.height = Math.round(rect.height);
+    } else {
+      canvas.style.top = '0px';
+      canvas.style.left = '0px';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.width = vp.clientWidth;
+      canvas.height = vp.clientHeight;
+    }
     redrawDrawingPreview();
   }
 
   window.addEventListener('resize', resizeCanvas);
+  const imgEl = document.getElementById('live-stream-img');
+  if (imgEl) {
+    imgEl.addEventListener('load', resizeCanvas);
+  }
   resizeCanvas();
 
   // Canvas Click to add vertex
@@ -337,6 +376,18 @@ function toggleDrawZoneMode() {
 
   if (isDrawingMode) {
     drawnPoints = [];
+    const vp = document.getElementById('video-viewport');
+    const img = document.getElementById('live-stream-img');
+    if (canvasEl && img && vp && img.clientWidth > 0) {
+      const rect = img.getBoundingClientRect();
+      const vpRect = vp.getBoundingClientRect();
+      canvasEl.style.top = `${rect.top - vpRect.top}px`;
+      canvasEl.style.left = `${rect.left - vpRect.left}px`;
+      canvasEl.style.width = `${rect.width}px`;
+      canvasEl.style.height = `${rect.height}px`;
+      canvasEl.width = Math.round(rect.width);
+      canvasEl.height = Math.round(rect.height);
+    }
     canvasEl.classList.add('active');
     hudBar.style.display = 'flex';
     document.getElementById('draw-pts-counter').textContent = `0 Titik`;
@@ -1044,6 +1095,26 @@ async function saveSettings() {
   await fetch('/api/settings', { method: 'POST', body: form });
   openToast('Konfigurasi deteksi & model diperbarui.');
   closeSettingsModal();
+}
+
+// TOGGLE RIGHT SIDEBAR PANEL (MAP & TELEMETRY)
+function toggleRightPanel() {
+  const panel = document.querySelector('.right-panel');
+  if (!panel) return;
+  panel.classList.toggle('collapsed');
+  const isCollapsed = panel.classList.contains('collapsed');
+  const btn = document.getElementById('btn-toggle-right-panel');
+  if (btn) {
+    if (isCollapsed) {
+      btn.style.opacity = '0.7';
+    } else {
+      btn.style.opacity = '1';
+    }
+  }
+  openToast(isCollapsed ? 'Panel Peta disembunyikan' : 'Panel Peta ditampilkan');
+  setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, 280);
 }
 
 // TOAST

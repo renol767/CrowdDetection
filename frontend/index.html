@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css?v=2.5">
+  <link rel="stylesheet" href="style.css?v=3.1">
 </head>
 <body>
   <div class="command-container">
@@ -49,6 +49,10 @@
           <i data-lucide="clock"></i>
           <span id="live-clock">15:42:18 WIB</span>
         </div>
+        <button class="panel-toggle-btn" id="btn-toggle-right-panel" onclick="toggleRightPanel()" title="Sembunyikan / Tampilkan Panel Peta & Telemetri">
+          <i data-lucide="layout-grid"></i>
+          <span>Peta & Telemetri</span>
+        </button>
         <div class="user-profile">
           <div class="avatar"><i data-lucide="shield"></i></div>
           <div class="user-meta">
@@ -597,6 +601,6 @@
   <!-- Toast Notification Container -->
   <div id="toast" class="tactical-toast">Notification message</div>
 
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+export PYTORCH_ENABLE_MPS_FALLBACK=1
 
 # Pindah ke direktori project
 cd "$(dirname "$0")"

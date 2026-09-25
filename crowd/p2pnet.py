@@ -288,14 +288,13 @@ def predict_points(
             # Softmax probability for head foreground (class index 1)
             scores = torch.nn.functional.softmax(outputs["pred_logits"], -1)[:, :, 1][0]
             pred_points = outputs["pred_points"][0]
+            mask = scores > threshold
+            if not mask.any():
+                sync_device()
+                return []
+            valid_pts = pred_points[mask].cpu().numpy()
+            valid_scores = scores[mask].cpu().numpy()
             sync_device()
-
-    mask = scores > threshold
-    if not mask.any():
-        return []
-
-    valid_pts = pred_points[mask].cpu().numpy()
-    valid_scores = scores[mask].cpu().numpy()
 
     # Scale coordinates back to original frame dimensions
     scale_x = orig_w / float(nw)

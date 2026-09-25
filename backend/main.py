@@ -1,4 +1,5 @@
 import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 import shutil
 import asyncio
 from pathlib import Path
